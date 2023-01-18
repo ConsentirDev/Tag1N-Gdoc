@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+  <!-- The CSS package above applies Google styling to buttons and other elements. -->
+
+  <style>
+    .branding-below {
+      bottom: 56px;
+      top: 0;
+    }
+    .branding-text {
+      left: 7px;
+      position: relative;
+      top: 3px;
+    }
+    .col-contain {
+      overflow: hidden;
+      width: 100%;
+    }
+    .col-one {
+      float: left;
+      width: 100%;
+    }
+    .logo {
+      vertical-align: middle;
+    }
+    .width-100 {
+      width: 100%;
+    }
+  </style>
+  <title></title>
+</head>
+<body>
+<div class="sidebar branding-below">
+  <form>
+    <div class="block col-contain">
+      <div class="col-one">
+          <div class="block form-group">
+          <label for="prompt-new"><b>What would you like to create?:</b></label>
+          <textarea style="width: 100%" name="prompt" id="prompt-new" rows="10"></textarea>      
+    </div>
+    <div class="block form-group">
+      <label for="generated-text"><b>Generated Text Result</b></label>
+      <textarea style="width: 100%" name="generated" id="generated-text" rows="10"></textarea>
+    </div>
+    <div class="block form-group">
+      <label for="user-key"><b>Your OpenAI API Key</b></label>
+      <textarea style="width: 100%" name="key" id="user-key" rows="1"></textarea>
+    </div>
+  </div>
+ </div>
+    <div class="block" id="button-bar">
+      <button class="blue" id="run-generation">Generate</button>
+      <button id="insert-text">Insert</button>
+      <button id="ask-for-edit">Edit</button>
+    </div>
+  </form>
+</div>
+
+<div class="sidebar bottom">
+  <img alt="Add-on logo" class="logo" src="https://www.gstatic.com/images/branding/product/1x/translate_48dp.png" width="27" height="27">
+  <span class="gray branding-text">GPT in Doc Research Assistant</span>
+</div>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script>
+   /**
+   * On document load, assign click handlers to each button.
+   */
+  $(function() {
+    $('#run-generation').click(runGeneration);
+    $('#ask-for-edit').click(runEdit);
+    $('#insert-text').click(insertText);
+  });
+
+  /**
+   * Runs a server-side function to take the user-selected text and update
+   * the sidebar UI with the resulting generation.
+   */
+  function runEdit() {
+    this.disabled = true;
+    $('#error').remove();
+    const prompt = document.getElementById("prompt-new").value
+    const userkey = document.getElementById("user-key").value
+    google.script.run
+            .withSuccessHandler(
+                    function(sendAIeditRequest, element) {
+                      $('#generated-text').val(sendAIeditRequest.generation);
+                      element.disabled = false;
+                    })
+            .withFailureHandler(
+                    function(msg, element) {
+                      showError(msg, $('#button-bar'));
+                      element.disabled = false;
+                    })
+            .withUserObject(this)
+            .sendAIeditRequest(prompt, userkey);
+  }
+
+  function runGeneration() {
+    this.disabled = true;
+    $('#error').remove();
+    const prompt = document.getElementById("prompt-new").value
+    const userkey = document.getElementById("user-key").value
+    google.script.run
+            .withSuccessHandler(
+                    function(sendOpenAIRequest, element) {
+                      $('#generated-text').val(sendOpenAIRequest.generation);
+                      element.disabled = false;
+                    })
+            .withFailureHandler(
+                    function(msg, element) {
+                      showError(msg, $('#button-bar'));
+                      element.disabled = false;
+                    })
+            .withUserObject(this)
+            .sendOpenAIRequest(prompt, userkey);
+  }
+
+  /**
+   * Runs a server-side function to insert the generated text into the document
+   * at the user's cursor or selection.
+   */
+  function insertText() {
+    this.disabled = true;
+    $('#error').remove();
+    google.script.run
+            .withSuccessHandler(
+                    function(returnSuccess, element) {
+                      element.disabled = false;
+                    })
+            .withFailureHandler(
+                    function(msg, element) {
+                      showError(msg, $('#button-bar'));
+                      element.disabled = false;
+                    })
+            .withUserObject(this)
+            .insertText($('#generated-text').val());
+  }
+
+  /**
+   * Inserts a div that contains an error message after a given element.
+   *
+   * @param {string} msg The error message to display.
+   * @param {DOMElement} element The element after which to display the error.
+   */
+  function showError(msg, element) {
+    const div = $('<div id="error" class="error">' + msg + '</div>');
+    $(element).after(div);
+  }
+</script>
+</body>
+</html>
